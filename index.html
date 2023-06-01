@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Draw.io-like Page</title>
+    <style>
+      body {
+        background-color: #ccc;
+        overflow: hidden;
+        margin: 0;
+        padding: 0;
+      }
+
+      #canvas {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+        overflow: scroll;
+      }
+
+      #background {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%"><defs><pattern id="smallGrid" width="8" height="8" patternUnits="userSpaceOnUse"><path d="M 8 0 L 0 0 0 8" fill="none" stroke="gray" stroke-width="0.5"/></pattern><pattern id="grid" width="100%" height="100%" patternUnits="userSpaceOnUse"><rect width="100%" height="100%" fill="url(%23smallGrid)"/><path d="M 100% 0 L 0 0 0 100%" fill="none" stroke="gray" stroke-width="1"/></pattern></defs><rect width="100%" height="100%" fill="url(%23grid)"/></svg>');
+        opacity: 0.5;
+      }
+
+      #toolbox {
+        width: 200px;
+        height: 100vh;
+        background-color: #f2f2f2;
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 9999;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+      }
+
+      #toolbox-search {
+        width: 100%;
+        padding: 10px;
+        border-radius: 8px;
+        margin-bottom: 10px;
+      }
+
+      #tool-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+      }
+
+      .tool {
+        width: 60px;
+        height: 60px;
+        background-color: #ddd;
+        margin-bottom: 10px;
+        cursor: move;
+      }
+
+      .tool.triangle {
+        clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+      }
+
+      .tool.rectangle {
+        width: 80px;
+        height: 40px;
+      }
+
+      .context-menu {
+        background-color: #fff;
+        border: 1px solid #ccc;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        border-radius: 4px;
+        padding: 8px;
+        position: absolute;
+        z-index: 99999;
+      }
+
+      .context-menu ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+
+      .context-menu ul li {
+        cursor: pointer;
+        padding: 6px 12px;
+      }
+
+      .context-menu ul li:hover {
+        background-color: #f2f2f2;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="canvas">
+      <div id="background"></div>
+    </div>
+
+    <div id="toolbox">
+      <div id="toolbox-search">
+        <input type="text" placeholder="Search tool..." />
+      </div>
+      <div id="tool-container">
+        <div class="tool square"></div>
+        <div class="tool triangle"></div>
+        <div class="tool rectangle"></div>
+      </div>
+    </div>
+
+    <script>
+      var canvas = document.getElementById("canvas");
+      var toolbox = document.getElementById("toolbox");
+      var tools = document.getElementsByClassName("tool");
+
+      var currentTool = null;
+
+      for (var i = 0; i < tools.length; i++) {
+        var tool = tools[i];
+
+        tool.addEventListener("mousedown", function (event) {
+          var offsetX = event.clientX - toolbox.getBoundingClientRect().left;
+          var offsetY = event.clientY - toolbox.getBoundingClientRect().top;
+
+          var clone = this.cloneNode(true);
+          clone.style.position = "absolute";
+          clone.style.top = offsetY + "px";
+          clone.style.left = offsetX + "px";
+          canvas.appendChild(clone);
+
+          var selectedTool = clone; // Create a separate variable for the current tool
+
+          var isMoving = true;
+          var currentX = event.clientX;
+          var currentY = event.clientY;
+
+          function handleMove(event) {
+            if (isMoving) {
+              var deltaX = event.clientX - currentX;
+              var deltaY = event.clientY - currentY;
+
+              var cloneRect = selectedTool.getBoundingClientRect();
+              var cloneLeft = cloneRect.left;
+              var cloneTop = cloneRect.top;
+
+              var newLeft = cloneLeft + deltaX;
+              var newTop = cloneTop + deltaY;
+
+              selectedTool.style.left = newLeft + "px";
+              selectedTool.style.top = newTop + "px";
+
+              currentX = event.clientX;
+              currentY = event.clientY;
+            }
+          }
+
+          function handleUp(event) {
+            isMoving = false;
+            canvas.removeEventListener("mousemove", handleMove);
+            canvas.removeEventListener("mouseup", handleUp);
+
+            // Enable dragging again after releasing the element
+            selectedTool.addEventListener("mousedown", function (event) {
+              var offsetX =
+                event.clientX - selectedTool.getBoundingClientRect().left;
+              var offsetY =
+                event.clientY - selectedTool.getBoundingClientRect().top;
+
+              var isMoving = true;
+              var currentX = event.clientX;
+              var currentY = event.clientY;
+
+              function handleMove(event) {
+                if (isMoving) {
+                  var deltaX = event.clientX - currentX;
+                  var deltaY = event.clientY - currentY;
+
+                  var cloneRect = selectedTool.getBoundingClientRect();
+                  var cloneLeft = cloneRect.left;
+                  var cloneTop = cloneRect.top;
+
+                  var newLeft = cloneLeft + deltaX;
+                  var newTop = cloneTop + deltaY;
+
+                  selectedTool.style.left = newLeft + "px";
+                  selectedTool.style.top = newTop + "px";
+
+                  currentX = event.clientX;
+                  currentY = event.clientY;
+                }
+              }
+
+              function handleUp(event) {
+                isMoving = false;
+                canvas.removeEventListener("mousemove", handleMove);
+                canvas.removeEventListener("mouseup", handleUp);
+              }
+
+              canvas.addEventListener("mousemove", handleMove);
+              canvas.addEventListener("mouseup", handleUp);
+            });
+
+            // Add context menu to the tool when dropped on the canvas
+            selectedTool.addEventListener("contextmenu", function (event) {
+              event.preventDefault();
+
+              var contextMenu = document.createElement("div");
+              contextMenu.className = "context-menu";
+              contextMenu.innerHTML = "<ul><li>Delete</li></ul>";
+              contextMenu.style.position = "absolute";
+              contextMenu.style.top = event.clientY + "px";
+              contextMenu.style.left = event.clientX + "px";
+              document.body.appendChild(contextMenu);
+
+              // Delete tool when the "Delete" option is clicked
+              var deleteOption = contextMenu.querySelector("li");
+              deleteOption.addEventListener("click", function () {
+                canvas.removeChild(selectedTool);
+                document.body.removeChild(contextMenu);
+                selectedTool = null;
+              });
+
+              // Close context menu when clicking outside the menu
+              document.addEventListener("click", function (event) {
+                if (!contextMenu.contains(event.target)) {
+                  document.body.removeChild(contextMenu);
+                }
+              });
+            });
+          }
+
+          canvas.addEventListener("mousemove", handleMove);
+          canvas.addEventListener("mouseup", handleUp);
+        });
+      }
+    </script>
+  </body>
+</html>
