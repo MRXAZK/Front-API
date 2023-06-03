@@ -43,7 +43,6 @@
         justify-content: flex-start;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         border-radius: 4px;
-        box-shadow: none; /* Menghilangkan bayangan pada input */
       }
 
       #toolbox-search {
@@ -51,10 +50,18 @@
         padding: 10px;
         border-radius: 8px;
         margin-bottom: 10px;
-        user-select: none;
         font-family: Arial, sans-serif;
         font-size: 14px;
-        box-shadow: none;
+      }
+
+      #toolbox-search input {
+        width: 100%;
+        padding: 5px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+        box-sizing: border-box;
       }
 
       #tool-container {
@@ -72,6 +79,7 @@
         cursor: move;
         border-radius: 4px;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        user-select: none; /* Menambahkan CSS untuk mencegah pemilihan elemen */
       }
 
       .tool:hover {
@@ -120,9 +128,10 @@
       <div id="background"></div>
     </div>
 
-    <div id="toolbox" draggable="false">
+    <div id="toolbox">
       <div id="toolbox-search">
-        <input type="text" placeholder="Search tool..." draggable="false" />
+        <input type="text" placeholder="Search tool..." />
+        <!-- Menambahkan atribut onmousedown untuk mencegah drag saat mengklik -->
       </div>
       <div id="tool-container">
         <div class="tool square"></div>
@@ -133,10 +142,6 @@
 
     <script>
       var searchInput = document.querySelector("#toolbox-search input");
-
-      searchInput.addEventListener("dragstart", function (event) {
-        event.preventDefault();
-      });
 
       var canvas = document.getElementById("canvas");
       var toolbox = document.getElementById("toolbox");
@@ -228,31 +233,6 @@
 
               canvas.addEventListener("mousemove", handleMove);
               canvas.addEventListener("mouseup", handleUp);
-            });
-
-            selectedTool.addEventListener("contextmenu", function (event) {
-              event.preventDefault();
-
-              var contextMenu = document.createElement("div");
-              contextMenu.className = "context-menu";
-              contextMenu.innerHTML = "<ul><li>Delete</li></ul>";
-              contextMenu.style.position = "absolute";
-              contextMenu.style.top = event.clientY + "px";
-              contextMenu.style.left = event.clientX + "px";
-              document.body.appendChild(contextMenu);
-
-              var deleteOption = contextMenu.querySelector("li");
-              deleteOption.addEventListener("click", function () {
-                canvas.removeChild(selectedTool);
-                document.body.removeChild(contextMenu);
-                selectedTool = null;
-              });
-
-              document.addEventListener("click", function (event) {
-                if (!contextMenu.contains(event.target)) {
-                  document.body.removeChild(contextMenu);
-                }
-              });
             });
           }
 
