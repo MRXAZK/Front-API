@@ -4,8 +4,7 @@
     <title>Draw.io-like Page</title>
     <style>
       body {
-        background-color: #ccc;
-        overflow: hidden;
+        background-color: #f1f1f1;
         margin: 0;
         padding: 0;
       }
@@ -14,7 +13,7 @@
         position: relative;
         width: 100vw;
         height: 100vh;
-        overflow: scroll;
+        overflow: auto;
       }
 
       #background {
@@ -30,17 +29,21 @@
 
       #toolbox {
         width: 200px;
-        height: 100vh;
-        background-color: #f2f2f2;
+        min-height: 50vh;
+        background-color: #fff;
         position: fixed;
-        top: 0;
+        top: 50%;
         left: 0;
+        transform: translateY(-50%);
         z-index: 9999;
-        padding: 20px;
+        padding: 10px;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: flex-start;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        border-radius: 4px;
+        box-shadow: none; /* Menghilangkan bayangan pada input */
       }
 
       #toolbox-search {
@@ -48,7 +51,10 @@
         padding: 10px;
         border-radius: 8px;
         margin-bottom: 10px;
-        user-select: none; /* Menambahkan properti user-select: none; */
+        user-select: none;
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+        box-shadow: none;
       }
 
       #tool-container {
@@ -61,9 +67,15 @@
       .tool {
         width: 60px;
         height: 60px;
-        background-color: #ddd;
+        background-color: #f1f1f1;
         margin-bottom: 10px;
         cursor: move;
+        border-radius: 4px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .tool:hover {
+        background-color: #e0e0e0;
       }
 
       .tool.triangle {
@@ -83,6 +95,8 @@
         padding: 8px;
         position: absolute;
         z-index: 99999;
+        font-family: Arial, sans-serif;
+        font-size: 14px;
       }
 
       .context-menu ul {
@@ -106,9 +120,9 @@
       <div id="background"></div>
     </div>
 
-    <div id="toolbox">
+    <div id="toolbox" draggable="false">
       <div id="toolbox-search">
-        <input type="text" placeholder="Search tool..." />
+        <input type="text" placeholder="Search tool..." draggable="false" />
       </div>
       <div id="tool-container">
         <div class="tool square"></div>
@@ -118,6 +132,12 @@
     </div>
 
     <script>
+      var searchInput = document.querySelector("#toolbox-search input");
+
+      searchInput.addEventListener("dragstart", function (event) {
+        event.preventDefault();
+      });
+
       var canvas = document.getElementById("canvas");
       var toolbox = document.getElementById("toolbox");
       var tools = document.getElementsByClassName("tool");
@@ -128,16 +148,18 @@
         var tool = tools[i];
 
         tool.addEventListener("mousedown", function (event) {
-          var offsetX = event.clientX - toolbox.getBoundingClientRect().left;
-          var offsetY = event.clientY - toolbox.getBoundingClientRect().top;
+          // Skip the dragging process if the clicked element is the input field
+          if (event.target.tagName === "INPUT") {
+            return;
+          }
 
           var clone = this.cloneNode(true);
           clone.style.position = "absolute";
-          clone.style.top = offsetY + "px";
-          clone.style.left = offsetX + "px";
+          clone.style.left = event.clientX + "px";
+          clone.style.top = event.clientY + "px";
           canvas.appendChild(clone);
 
-          var selectedTool = clone; // Create a separate variable for the current tool
+          var selectedTool = clone;
 
           var isMoving = true;
           var currentX = event.clientX;
@@ -168,7 +190,6 @@
             canvas.removeEventListener("mousemove", handleMove);
             canvas.removeEventListener("mouseup", handleUp);
 
-            // Enable dragging again after releasing the element
             selectedTool.addEventListener("mousedown", function (event) {
               var offsetX =
                 event.clientX - selectedTool.getBoundingClientRect().left;
@@ -209,7 +230,6 @@
               canvas.addEventListener("mouseup", handleUp);
             });
 
-            // Add context menu to the tool when dropped on the canvas
             selectedTool.addEventListener("contextmenu", function (event) {
               event.preventDefault();
 
@@ -221,7 +241,6 @@
               contextMenu.style.left = event.clientX + "px";
               document.body.appendChild(contextMenu);
 
-              // Delete tool when the "Delete" option is clicked
               var deleteOption = contextMenu.querySelector("li");
               deleteOption.addEventListener("click", function () {
                 canvas.removeChild(selectedTool);
@@ -229,7 +248,6 @@
                 selectedTool = null;
               });
 
-              // Close context menu when clicking outside the menu
               document.addEventListener("click", function (event) {
                 if (!contextMenu.contains(event.target)) {
                   document.body.removeChild(contextMenu);
