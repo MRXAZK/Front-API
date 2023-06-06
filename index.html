@@ -8,7 +8,6 @@
         margin: 0;
         padding: 0;
       }
-
       #canvas {
         position: relative;
         width: 100vw;
@@ -79,13 +78,12 @@
         cursor: move;
         border-radius: 4px;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        user-select: none; /* Menambahkan CSS untuk mencegah pemilihan elemen */
+        user-select: none;
       }
 
       .tool:hover {
         background-color: #e0e0e0;
       }
-
       .tool.triangle {
         clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
       }
@@ -105,6 +103,7 @@
         z-index: 99999;
         font-family: Arial, sans-serif;
         font-size: 14px;
+        display: none;
       }
 
       .context-menu ul {
@@ -127,11 +126,9 @@
     <div id="canvas">
       <div id="background"></div>
     </div>
-
     <div id="toolbox">
       <div id="toolbox-search">
         <input type="text" placeholder="Search tool..." />
-        <!-- Menambahkan atribut onmousedown untuk mencegah drag saat mengklik -->
       </div>
       <div id="tool-container">
         <div class="tool square"></div>
@@ -139,107 +136,153 @@
         <div class="tool rectangle"></div>
       </div>
     </div>
-
+    <div id="contextMenu" class="context-menu">
+      <ul>
+        <li id="delete">Delete</li>
+      </ul>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
-      var searchInput = document.querySelector("#toolbox-search input");
-
-      var canvas = document.getElementById("canvas");
-      var toolbox = document.getElementById("toolbox");
-      var tools = document.getElementsByClassName("tool");
+      var searchInput = $("#toolbox-search input");
+      var canvas = $("#canvas");
+      var toolbox = $("#toolbox");
+      var tools = $(".tool");
+      var contextMenu = $("#contextMenu");
+      var deleteMenuItem = $("#delete");
 
       var currentTool = null;
 
-      for (var i = 0; i < tools.length; i++) {
-        var tool = tools[i];
+      // Tool click event handler
+      tools.on("mousedown", function (event) {
+        if (event.target.tagName === "INPUT") {
+          return;
+        }
 
-        tool.addEventListener("mousedown", function (event) {
-          // Skip the dragging process if the clicked element is the input field
-          if (event.target.tagName === "INPUT") {
-            return;
-          }
+        var clone = $(this)
+          .clone()
+          .css({
+            position: "absolute",
+            left: event.clientX + "px",
+            top: event.clientY + "px",
+          });
+        canvas.append(clone);
 
-          var clone = this.cloneNode(true);
-          clone.style.position = "absolute";
-          clone.style.left = event.clientX + "px";
-          clone.style.top = event.clientY + "px";
-          canvas.appendChild(clone);
+        var selectedTool = clone;
 
-          var selectedTool = clone;
+        var isMoving = true;
+        var currentX = event.clientX;
+        var currentY = event.clientY;
 
-          var isMoving = true;
-          var currentX = event.clientX;
-          var currentY = event.clientY;
+        function handleMove(event) {
+          if (isMoving) {
+            var deltaX = event.clientX - currentX;
+            var deltaY = event.clientY - currentY;
 
-          function handleMove(event) {
-            if (isMoving) {
-              var deltaX = event.clientX - currentX;
-              var deltaY = event.clientY - currentY;
+            var cloneRect = selectedTool[0].getBoundingClientRect();
+            var cloneLeft = cloneRect.left;
+            var cloneTop = cloneRect.top;
 
-              var cloneRect = selectedTool.getBoundingClientRect();
-              var cloneLeft = cloneRect.left;
-              var cloneTop = cloneRect.top;
+            var newLeft = cloneLeft + deltaX;
+            var newTop = cloneTop + deltaY;
 
-              var newLeft = cloneLeft + deltaX;
-              var newTop = cloneTop + deltaY;
-
-              selectedTool.style.left = newLeft + "px";
-              selectedTool.style.top = newTop + "px";
-
-              currentX = event.clientX;
-              currentY = event.clientY;
-            }
-          }
-
-          function handleUp(event) {
-            isMoving = false;
-            canvas.removeEventListener("mousemove", handleMove);
-            canvas.removeEventListener("mouseup", handleUp);
-
-            selectedTool.addEventListener("mousedown", function (event) {
-              var offsetX =
-                event.clientX - selectedTool.getBoundingClientRect().left;
-              var offsetY =
-                event.clientY - selectedTool.getBoundingClientRect().top;
-
-              var isMoving = true;
-              var currentX = event.clientX;
-              var currentY = event.clientY;
-
-              function handleMove(event) {
-                if (isMoving) {
-                  var deltaX = event.clientX - currentX;
-                  var deltaY = event.clientY - currentY;
-
-                  var cloneRect = selectedTool.getBoundingClientRect();
-                  var cloneLeft = cloneRect.left;
-                  var cloneTop = cloneRect.top;
-
-                  var newLeft = cloneLeft + deltaX;
-                  var newTop = cloneTop + deltaY;
-
-                  selectedTool.style.left = newLeft + "px";
-                  selectedTool.style.top = newTop + "px";
-
-                  currentX = event.clientX;
-                  currentY = event.clientY;
-                }
-              }
-
-              function handleUp(event) {
-                isMoving = false;
-                canvas.removeEventListener("mousemove", handleMove);
-                canvas.removeEventListener("mouseup", handleUp);
-              }
-
-              canvas.addEventListener("mousemove", handleMove);
-              canvas.addEventListener("mouseup", handleUp);
+            selectedTool.css({
+              left: newLeft + "px",
+              top: newTop + "px",
             });
-          }
 
-          canvas.addEventListener("mousemove", handleMove);
-          canvas.addEventListener("mouseup", handleUp);
-        });
-      }
+            currentX = event.clientX;
+            currentY = event.clientY;
+          }
+        }
+
+        function handleUp(event) {
+          isMoving = false;
+          canvas.off("mousemove", handleMove);
+          canvas.off("mouseup", handleUp);
+
+          selectedTool.on("mousedown", function (event) {
+            var offsetX =
+              event.clientX - selectedTool[0].getBoundingClientRect().left;
+            var offsetY =
+              event.clientY - selectedTool[0].getBoundingClientRect().top;
+
+            var isMoving = true;
+            var currentX = event.clientX;
+            var currentY = event.clientY;
+
+            function handleMove(event) {
+              if (isMoving) {
+                var deltaX = event.clientX - currentX;
+                var deltaY = event.clientY - currentY;
+
+                var cloneRect = selectedTool[0].getBoundingClientRect();
+                var cloneLeft = cloneRect.left;
+                var cloneTop = cloneRect.top;
+
+                var newLeft = cloneLeft + deltaX;
+                var newTop = cloneTop + deltaY;
+
+                selectedTool.css({
+                  left: newLeft + "px",
+                  top: newTop + "px",
+                });
+
+                currentX = event.clientX;
+                currentY = event.clientY;
+              }
+            }
+
+            function handleUp(event) {
+              isMoving = false;
+              canvas.off("mousemove", handleMove);
+              canvas.off("mouseup", handleUp);
+            }
+
+            canvas.on("mousemove", handleMove);
+            canvas.on("mouseup", handleUp);
+
+            event.stopPropagation();
+          });
+
+          selectedTool.on("contextmenu", function (event) {
+            event.preventDefault();
+
+            var posX = event.clientX;
+            var posY = event.clientY;
+
+            contextMenu.css({
+              display: "block",
+              left: posX + "px",
+              top: posY + "px",
+            });
+
+            currentTool = selectedTool;
+          });
+
+          event.stopPropagation();
+        }
+
+        canvas.on("mousemove", handleMove);
+        canvas.on("mouseup", handleUp);
+
+        event.stopPropagation();
+      });
+
+      // Context menu click event handler
+      deleteMenuItem.on("click", function () {
+        if (currentTool) {
+          currentTool.remove();
+        }
+        contextMenu.hide();
+        currentTool = null;
+      });
+
+      // Hide context menu when clicking outside
+      $(document).on("mousedown", function (event) {
+        if (!$(event.target).closest(".context-menu").length) {
+          contextMenu.hide();
+        }
+      });
     </script>
   </body>
 </html>
