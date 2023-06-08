@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div id="canvas">
+    <div id="canvas" ref="canvas">
       <div id="background"></div>
     </div>
     <div id="toolbox">
@@ -24,16 +24,14 @@
 <script>
 export default {
   mounted() {
-    const canvas = document.querySelector("#canvas");
+    const canvas = this.$refs.canvas;
     const tools = document.querySelectorAll(".tool");
     const contextMenu = document.querySelector("#contextMenu");
     const deleteMenuItem = document.querySelector("#delete");
 
     let currentTool = null;
-    let isMoving = false;
-    let initialX = 0;
-    let initialY = 0;
 
+    // Tool click event handler
     tools.forEach((tool) => {
       tool.addEventListener("mousedown", (event) => {
         if (event.target.tagName === "INPUT") {
@@ -47,47 +45,76 @@ export default {
         canvas.appendChild(clone);
 
         let selectedTool = clone;
-
-        isMoving = true;
-        initialX = event.clientX - selectedTool.offsetLeft;
-        initialY = event.clientY - selectedTool.offsetTop;
+        let isMoving = true;
+        let currentX = event.clientX;
+        let currentY = event.clientY;
 
         function handleMove(event) {
-          if (isMoving) {
-            const newLeft = event.clientX - initialX;
-            const newTop = event.clientY - initialY;
+          if (!isMoving) return;
+          let deltaX = event.clientX - currentX;
+          let deltaY = event.clientY - currentY;
 
-            selectedTool.style.left = newLeft + "px";
-            selectedTool.style.top = newTop + "px";
-          }
+          let newLeft = selectedTool.offsetLeft + deltaX;
+          let newTop = selectedTool.offsetTop + deltaY;
+
+          selectedTool.style.left = newLeft + "px";
+          selectedTool.style.top = newTop + "px";
+
+          currentX = event.clientX;
+          currentY = event.clientY;
         }
 
         function handleUp() {
           isMoving = false;
           canvas.removeEventListener("mousemove", handleMove);
           canvas.removeEventListener("mouseup", handleUp);
-        }
 
-        function handleToolMove(event) {
+          selectedTool.addEventListener("mousedown", (event) => {
+            let isMoving = true;
+            let currentX = event.clientX;
+            let currentY = event.clientY;
+
+            function handleMove(event) {
+              if (!isMoving) return;
+              let deltaX = event.clientX - currentX;
+              let deltaY = event.clientY - currentY;
+
+              let newLeft = selectedTool.offsetLeft + deltaX;
+              let newTop = selectedTool.offsetTop + deltaY;
+
+              selectedTool.style.left = newLeft + "px";
+              selectedTool.style.top = newTop + "px";
+
+              currentX = event.clientX;
+              currentY = event.clientY;
+            }
+
+            function handleUp() {
+              isMoving = false;
+              canvas.removeEventListener("mousemove", handleMove);
+              canvas.removeEventListener("mouseup", handleUp);
+            }
+
+            canvas.addEventListener("mousemove", handleMove);
+            canvas.addEventListener("mouseup", handleUp);
+
+            event.stopPropagation();
+          });
+
+          selectedTool.addEventListener("contextmenu", (event) => {
+            event.preventDefault();
+            let posX = event.clientX;
+            let posY = event.clientY;
+
+            contextMenu.style.display = "block";
+            contextMenu.style.left = posX + "px";
+            contextMenu.style.top = posY + "px";
+
+            currentTool = selectedTool;
+          });
+
           event.stopPropagation();
-          isMoving = true;
-          initialX = event.clientX - selectedTool.offsetLeft;
-          initialY = event.clientY - selectedTool.offsetTop;
         }
-
-        selectedTool.addEventListener("mousedown", handleToolMove);
-        selectedTool.addEventListener("contextmenu", (event) => {
-          event.preventDefault();
-
-          const posX = event.clientX;
-          const posY = event.clientY;
-
-          contextMenu.style.display = "block";
-          contextMenu.style.left = posX + "px";
-          contextMenu.style.top = posY + "px";
-
-          currentTool = selectedTool;
-        });
 
         canvas.addEventListener("mousemove", handleMove);
         canvas.addEventListener("mouseup", handleUp);
@@ -96,6 +123,7 @@ export default {
       });
     });
 
+    // Context menu click event handler
     deleteMenuItem.addEventListener("click", () => {
       if (currentTool) {
         currentTool.remove();
@@ -104,6 +132,7 @@ export default {
       currentTool = null;
     });
 
+    // Hide context menu when clicking outside
     document.addEventListener("mousedown", (event) => {
       if (!event.target.closest(".context-menu")) {
         contextMenu.style.display = "none";
