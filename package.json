@@ -1,0 +1,26 @@
+{
+  "name": "front-api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/main.js",
+  "scripts": {
+    "serve": "vue-cli-service serve",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MRXAZK/Front-API.git"
+  },
+  "author": "Farhan Aulianda",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/MRXAZK/Front-API/issues"
+  },
+  "homepage": "https://github.com/MRXAZK/Front-API#readme",
+  "dependencies": {
+    "@vue/cli": "^5.0.8",
+    "@vue/cli-service": "^5.0.8",
+    "jquery": "^3.7.0",
+    "vue": "^3.3.4"
+  }
+}
