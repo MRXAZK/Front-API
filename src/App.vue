@@ -1,286 +1,242 @@
 <template>
-    <div id="app"></div>
-    <div>
-        <div id="canvas">
-            <div id="background"></div>
-        </div>
-        <div id="toolbox">
-            <div id="toolbox-search">
-                <input type="text" placeholder="Search tool..." />
-            </div>
-            <div id="tool-container">
-                <div class="tool square"></div>
-                <div class="tool triangle"></div>
-                <div class="tool rectangle"></div>
-            </div>
-        </div>
-        <div id="contextMenu" class="context-menu">
-            <ul>
-                <li id="delete">Delete</li>
-            </ul>
-        </div>
+  <div>
+    <div id="canvas">
+      <div id="background"></div>
     </div>
+    <div id="toolbox">
+      <div id="toolbox-search">
+        <input type="text" placeholder="Search tool..." />
+      </div>
+      <div id="tool-container">
+        <div class="tool square"></div>
+        <div class="tool triangle"></div>
+        <div class="tool rectangle"></div>
+      </div>
+    </div>
+    <div id="contextMenu" class="context-menu">
+      <ul>
+        <li id="delete">Delete</li>
+      </ul>
+    </div>
+  </div>
 </template>
-  
+
 <script>
-import $ from 'jquery'
 export default {
-    mounted() {
-        var searchInput = $("#toolbox-search input");
-        var canvas = $("#canvas");
-        var toolbox = $("#toolbox");
-        var tools = $(".tool");
-        var contextMenu = $("#contextMenu");
-        var deleteMenuItem = $("#delete");
+  mounted() {
+    const canvas = document.querySelector("#canvas");
+    const tools = document.querySelectorAll(".tool");
+    const contextMenu = document.querySelector("#contextMenu");
+    const deleteMenuItem = document.querySelector("#delete");
 
-        var currentTool = null;
+    let currentTool = null;
+    let isMoving = false;
+    let initialX = 0;
+    let initialY = 0;
 
-        // Tool click event handler
-        tools.on("mousedown", function (event) {
-            if (event.target.tagName === "INPUT") {
-                return;
-            }
+    tools.forEach((tool) => {
+      tool.addEventListener("mousedown", (event) => {
+        if (event.target.tagName === "INPUT") {
+          return;
+        }
 
-            var clone = $(this)
-                .clone()
-                .css({
-                    position: "absolute",
-                    left: event.clientX + "px",
-                    top: event.clientY + "px",
-                });
-            canvas.append(clone);
+        const clone = tool.cloneNode(true);
+        clone.style.position = "absolute";
+        clone.style.left = event.clientX + "px";
+        clone.style.top = event.clientY + "px";
+        canvas.appendChild(clone);
 
-            var selectedTool = clone;
+        let selectedTool = clone;
 
-            var isMoving = true;
-            var currentX = event.clientX;
-            var currentY = event.clientY;
+        isMoving = true;
+        initialX = event.clientX - selectedTool.offsetLeft;
+        initialY = event.clientY - selectedTool.offsetTop;
 
-            function handleMove(event) {
-                if (isMoving) {
-                    var deltaX = event.clientX - currentX;
-                    var deltaY = event.clientY - currentY;
+        function handleMove(event) {
+          if (isMoving) {
+            const newLeft = event.clientX - initialX;
+            const newTop = event.clientY - initialY;
 
-                    var cloneRect = selectedTool[0].getBoundingClientRect();
-                    var cloneLeft = cloneRect.left;
-                    var cloneTop = cloneRect.top;
+            selectedTool.style.left = newLeft + "px";
+            selectedTool.style.top = newTop + "px";
+          }
+        }
 
-                    var newLeft = cloneLeft + deltaX;
-                    var newTop = cloneTop + deltaY;
+        function handleUp() {
+          isMoving = false;
+          canvas.removeEventListener("mousemove", handleMove);
+          canvas.removeEventListener("mouseup", handleUp);
+        }
 
-                    selectedTool.css({
-                        left: newLeft + "px",
-                        top: newTop + "px",
-                    });
+        function handleToolMove(event) {
+          event.stopPropagation();
+          isMoving = true;
+          initialX = event.clientX - selectedTool.offsetLeft;
+          initialY = event.clientY - selectedTool.offsetTop;
+        }
 
-                    currentX = event.clientX;
-                    currentY = event.clientY;
-                }
-            }
+        selectedTool.addEventListener("mousedown", handleToolMove);
+        selectedTool.addEventListener("contextmenu", (event) => {
+          event.preventDefault();
 
-            function handleUp(event) {
-                isMoving = false;
-                canvas.off("mousemove", handleMove);
-                canvas.off("mouseup", handleUp);
+          const posX = event.clientX;
+          const posY = event.clientY;
 
-                selectedTool.on("mousedown", function (event) {
-                    var offsetX =
-                        event.clientX - selectedTool[0].getBoundingClientRect().left;
-                    var offsetY =
-                        event.clientY - selectedTool[0].getBoundingClientRect().top;
+          contextMenu.style.display = "block";
+          contextMenu.style.left = posX + "px";
+          contextMenu.style.top = posY + "px";
 
-                    var isMoving = true;
-                    var currentX = event.clientX;
-                    var currentY = event.clientY;
-
-                    function handleMove(event) {
-                        if (isMoving) {
-                            var deltaX = event.clientX - currentX;
-                            var deltaY = event.clientY - currentY;
-
-                            var cloneRect = selectedTool[0].getBoundingClientRect();
-                            var cloneLeft = cloneRect.left;
-                            var cloneTop = cloneRect.top;
-
-                            var newLeft = cloneLeft + deltaX;
-                            var newTop = cloneTop + deltaY;
-
-                            selectedTool.css({
-                                left: newLeft + "px",
-                                top: newTop + "px",
-                            });
-
-                            currentX = event.clientX;
-                            currentY = event.clientY;
-                        }
-                    }
-
-                    function handleUp(event) {
-                        isMoving = false;
-                        canvas.off("mousemove", handleMove);
-                        canvas.off("mouseup", handleUp);
-                    }
-
-                    canvas.on("mousemove", handleMove);
-                    canvas.on("mouseup", handleUp);
-
-                    event.stopPropagation();
-                });
-
-                selectedTool.on("contextmenu", function (event) {
-                    event.preventDefault();
-
-                    var posX = event.clientX;
-                    var posY = event.clientY;
-
-                    contextMenu.css({
-                        display: "block",
-                        left: posX + "px",
-                        top: posY + "px",
-                    });
-
-                    currentTool = selectedTool;
-                });
-
-                event.stopPropagation();
-            }
-
-            canvas.on("mousemove", handleMove);
-            canvas.on("mouseup", handleUp);
-
-            event.stopPropagation();
+          currentTool = selectedTool;
         });
 
-        // Context menu click event handler
-        deleteMenuItem.on("click", function () {
-            if (currentTool) {
-                currentTool.remove();
-            }
-            contextMenu.hide();
-            currentTool = null;
-        });
+        canvas.addEventListener("mousemove", handleMove);
+        canvas.addEventListener("mouseup", handleUp);
 
-        // Hide context menu when clicking outside
-        $(document).on("mousedown", function (event) {
-            if (!$(event.target).closest(".context-menu").length) {
-                contextMenu.hide();
-            }
-        });
-    },
+        event.stopPropagation();
+      });
+    });
+
+    deleteMenuItem.addEventListener("click", () => {
+      if (currentTool) {
+        currentTool.remove();
+      }
+      contextMenu.style.display = "none";
+      currentTool = null;
+    });
+
+    document.addEventListener("mousedown", (event) => {
+      if (!event.target.closest(".context-menu")) {
+        contextMenu.style.display = "none";
+      }
+    });
+  },
 };
 </script>
-  
+
 <style scoped>
 body {
-    background: rgb(0, 75, 121);
-    background: linear-gradient(172deg,
-            rgba(0, 75, 121, 1) 0%,
-            rgba(0, 19, 42, 1) 100%);
-    margin: 0;
-    padding: 0;
+  background: rgb(0, 75, 121);
+  background: linear-gradient(172deg,
+      rgba(0, 75, 121, 1) 0%,
+      rgba(0, 19, 42, 1) 100%);
+  margin: 0;
+  padding: 0;
 }
 
 #canvas {
-    position: relative;
-    width: 100vw;
-    height: 100vh;
-    overflow: auto;
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: auto;
 }
 
 #background {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='20%' height='20%'><defs><pattern id='smallGrid' width='8' height='8' patternUnits='userSpaceOnUse'><path d='M 8 0 L 0 0 0 8' fill='none' stroke='gray' stroke-width='0.5'/></pattern><pattern id='grid' width='100%' height='100%' patternUnits='userSpaceOnUse'><rect width='100%' height='100%' fill='url(%23smallGrid)'/><path d='M 100% 0 L 0 0 0 100%' fill='none' stroke='gray' stroke-width='1'/></pattern></defs><rect width='100%' height='100%' fill='url(%23grid)'/></svg>");
-    opacity: 0.5;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20%" height="20%"><defs><pattern id="smallGrid" width="8" height="8" patternUnits="userSpaceOnUse"><path d="M 8 0 L 0 0 0 8" fill="none" stroke="gray" stroke-width="0.5"/></pattern><pattern id="grid" width="100%" height="100%" patternUnits="userSpaceOnUse"><rect width="100%" height="100%" fill="url(%23smallGrid)"/><path d="M 100% 0 L 0 0 0 100%" fill="none" stroke="gray" stroke-width="1"/></pattern></defs><rect width="100%" height="100%" fill="url(%23grid)"/></svg>');
+  opacity: 0.5;
 }
 
 #toolbox {
-    width: 200px;
-    min-height: 50vh;
-    background-color: #222;
-    position: fixed;
-    top: 50%;
-    left: 0;
-    transform: translateY(-50%);
-    z-index: 9999;
-    padding: 10px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    border-radius: 4px;
+  width: 200px;
+  min-height: 50vh;
+  background-color: #222;
+  position: fixed;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+  z-index: 9999;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
 }
 
 #toolbox-search {
-    width: 100%;
-    padding: 10px;
-    border-radius: 8px;
-    margin-bottom: 10px;
-    font-family: Arial, sans-serif;
-    font-size: 14px;
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  font-family: Arial, sans-serif;
+  font-size: 14px;
 }
 
 #toolbox-search input {
-    width: 100%;
-    padding: 5px;
-    border: 1px solid #555;
-    border-radius: 4px;
-    font-family: Arial, sans-serif;
-    font-size: 14px;
+  width: 100%;
+  padding: 5px;
+  border: 1px solid #555;
+  border-radius: 4px;
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+  box-sizing: border-box;
+  background-color: #444;
+  color: #fff;
+}
+
+#tool-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
 }
 
 .tool {
-    width: 50px;
-    height: 50px;
-    background-color: #ccc;
-    margin-bottom: 10px;
+  width: 60px;
+  height: 60px;
+  background-color: #6c6c6c;
+  margin-bottom: 10px;
+  cursor: move;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  user-select: none;
 }
 
-.square {
-    border-radius: 4px;
+.tool:hover {
+  background-color: #333;
 }
 
-.triangle {
-    width: 0;
-    height: 0;
-    border-left: 25px solid transparent;
-    border-right: 25px solid transparent;
-    border-bottom: 50px solid #ccc;
+.tool.triangle {
+  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
 }
 
-.rectangle {
-    border-radius: 8px;
+.tool.rectangle {
+  width: 80px;
+  height: 40px;
 }
 
-#contextMenu {
-    position: fixed;
-    background-color: #333;
-    color: #fff;
-    padding: 10px;
-    font-family: Arial, sans-serif;
-    font-size: 14px;
-    z-index: 9999;
-    display: none;
-    cursor: pointer;
+.context-menu {
+  background-color: #333;
+  border: 1px solid #555;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  padding: 8px;
+  position: absolute;
+  z-index: 99999;
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+  display: none;
+  color: #fff;
 }
 
 .context-menu ul {
-    list-style-type: none;
-    padding: 0;
-    margin: 0;
+  list-style: none;
+  padding: 0;
+  margin: 0;
 }
 
 .context-menu ul li {
-    padding: 5px 10px;
+  cursor: pointer;
+  padding: 6px 12px;
 }
 
 .context-menu ul li:hover {
-    background-color: #666;
+  background-color: #444;
 }
 </style>
-  
